@@ -1,5 +1,5 @@
 project_root: ../..
-env_path: ../../.env
+env_path: .env
 
 random_seed: 0
 
@@ -66,4 +66,4 @@ paths:
   processed_dir: data/processed/rehab_reference_original
   run_dir: outputs/runs/rehab_reference_original
   report_dir: outputs/reports/rehab_reference_original
-  baseline_results_dir: ../../CP_subcluster/results
+  baseline_results_dir: misc/CP_subcluster_onedrive/results

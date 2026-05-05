@@ -129,13 +129,29 @@ def build_knn_graph(pcs: np.ndarray, n_neighbors: int) -> ig.Graph:
 
 
 def build_umap_graph(pcs: np.ndarray, n_neighbors: int, random_seed: int) -> ig.Graph:
+    """Build a UMAP fuzzy-simplicial kNN graph using exact sklearn neighbors.
+
+    Passing precomputed neighbors avoids UMAP's approximate pynndescent path,
+    which is less stable on some macOS/OpenMP environments, while preserving
+    the UMAP graph weighting used by the reference reproduction workflow.
+    """
     from umap.umap_ import fuzzy_simplicial_set
+
+    n_samples = pcs.shape[0]
+    if n_samples < 3:
+        raise ValueError("Need at least three samples for graph clustering")
+    k = min(int(n_neighbors), n_samples)
+    neighbors = NearestNeighbors(n_neighbors=k, metric="euclidean", algorithm="auto")
+    neighbors.fit(pcs)
+    knn_dists, knn_indices = neighbors.kneighbors(pcs)
 
     connectivities, _, _ = fuzzy_simplicial_set(
         pcs,
-        n_neighbors=int(n_neighbors),
+        n_neighbors=k,
         random_state=int(random_seed),
         metric="euclidean",
+        knn_indices=knn_indices,
+        knn_dists=knn_dists,
     )
     upper = sparse.triu(connectivities + connectivities.T, k=1, format="coo")
     graph = ig.Graph(

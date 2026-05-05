@@ -127,3 +127,20 @@ def test_signature_matching() -> None:
     mapped = dict(zip(mapping["cluster"], mapping["baseline_cluster"], strict=False))
     assert mapped["0"] == "D"
     assert mapped["1"] == "B"
+
+
+def test_signature_matching_uses_global_best_assignment() -> None:
+    scores = pd.DataFrame(
+        {
+            "cluster": ["0", "0", "1", "1"],
+            "baseline_cluster": ["A", "B", "A", "B"],
+            "phecode_overlap": [5, 4, 4, 0],
+            "category_overlap": [0, 0, 0, 0],
+            "score": [5, 4, 4, 0],
+        }
+    )
+
+    mapping = greedy_mapping(scores)
+    mapped = dict(zip(mapping["cluster"], mapping["baseline_cluster"], strict=False))
+
+    assert mapped == {"0": "B", "1": "A"}

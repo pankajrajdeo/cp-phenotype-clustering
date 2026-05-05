@@ -59,6 +59,9 @@ def load_cluster_names(baseline_dir: str | Path) -> dict[str, str]:
 
 
 def score_cluster_matches(enrichment: pd.DataFrame, baseline: pd.DataFrame, top_n: int = 30) -> pd.DataFrame:
+    empty_columns = ["cluster", "baseline_cluster", "phecode_overlap", "category_overlap", "score"]
+    if baseline.empty:
+        return pd.DataFrame(columns=empty_columns)
     discovered = (
         enrichment[enrichment["direction"] == "enriched"]
         .sort_values(["cluster", "p_value_fdr", "prevalence_ratio"], ascending=[True, True, False])
@@ -90,20 +93,41 @@ def score_cluster_matches(enrichment: pd.DataFrame, baseline: pd.DataFrame, top_
                     "score": score,
                 }
             )
+    if not rows:
+        return pd.DataFrame(columns=empty_columns)
     return pd.DataFrame(rows).sort_values(["cluster", "score"], ascending=[True, False])
 
 
 def greedy_mapping(scores: pd.DataFrame) -> pd.DataFrame:
-    used_baseline: set[str] = set()
+    """Return the globally best one-to-one discovered-to-baseline mapping."""
+    if scores.empty:
+        return scores.copy()
+
+    from scipy.optimize import linear_sum_assignment
+
+    clusters = sorted(scores["cluster"].astype(str).unique())
+    baselines = sorted(scores["baseline_cluster"].astype(str).unique())
+    score_lookup = {
+        (str(row["cluster"]), str(row["baseline_cluster"])): float(row["score"])
+        for _, row in scores.iterrows()
+    }
+    cost = [
+        [-score_lookup.get((cluster, baseline), 0.0) for baseline in baselines]
+        for cluster in clusters
+    ]
+    row_idx, col_idx = linear_sum_assignment(cost)
+
     rows = []
-    for cluster in sorted(scores["cluster"].unique()):
-        candidates = scores[(scores["cluster"] == cluster) & (~scores["baseline_cluster"].isin(used_baseline))]
-        if candidates.empty:
-            candidates = scores[scores["cluster"] == cluster]
-        selected = candidates.sort_values("score", ascending=False).iloc[0]
-        used_baseline.add(str(selected["baseline_cluster"]))
-        rows.append(selected)
-    return pd.DataFrame(rows)
+    for row_pos, col_pos in zip(row_idx, col_idx, strict=False):
+        cluster = clusters[int(row_pos)]
+        baseline = baselines[int(col_pos)]
+        match = scores[
+            (scores["cluster"].astype(str) == cluster)
+            & (scores["baseline_cluster"].astype(str) == baseline)
+        ]
+        if not match.empty:
+            rows.append(match.iloc[0])
+    return pd.DataFrame(rows).sort_values("cluster").reset_index(drop=True)
 
 
 def write_validation_report(
@@ -115,6 +139,7 @@ def write_validation_report(
     mapping: pd.DataFrame,
     cluster_names: dict[str, str],
     enrichment: pd.DataFrame | None = None,
+    baseline_note: str | None = None,
 ) -> None:
     out_path = Path(out_path)
     ensure_dir(out_path.parent)
@@ -179,7 +204,9 @@ def write_validation_report(
         lines.append("- Mapping audit not available.")
 
     lines.extend(["", "## Likely A-E Correspondence"])
-    if not mapping.empty:
+    if baseline_note:
+        lines.append(f"- {baseline_note}")
+    elif not mapping.empty:
         for _, row in mapping.iterrows():
             baseline = str(row["baseline_cluster"])
             name = cluster_names.get(baseline, "")
@@ -244,10 +271,20 @@ def run_comparison(
         if col in enrichment.columns:
             enrichment[col] = pd.to_numeric(enrichment[col], errors="coerce")
 
-    baseline = load_baseline_signatures(baseline_dir)
+    baseline_note = None
+    baseline_path = Path(baseline_dir) / "big_cluster_filter_features_category.xlsx"
+    if baseline_path.exists():
+        baseline = load_baseline_signatures(baseline_dir)
+        cluster_names = load_cluster_names(baseline_dir)
+    else:
+        baseline = pd.DataFrame()
+        cluster_names = {}
+        baseline_note = (
+            "Baseline workbook was not found, so reference-cluster correspondence "
+            f"was skipped: {baseline_path}"
+        )
     scores = score_cluster_matches(enrichment, baseline)
     mapping = greedy_mapping(scores) if not scores.empty else pd.DataFrame()
-    cluster_names = load_cluster_names(baseline_dir)
     summary = pd.read_csv(summary_path) if summary_path.exists() else pd.DataFrame()
     manifest = read_json(manifest_path) if manifest_path.exists() else {}
     extract_summary = (
@@ -273,6 +310,7 @@ def run_comparison(
         mapping,
         cluster_names,
         enrichment,
+        baseline_note=baseline_note,
     )
     return {
         "scores": str(out_dir / "cluster_match_scores.csv"),

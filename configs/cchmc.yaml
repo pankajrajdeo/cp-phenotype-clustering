@@ -1,5 +1,5 @@
 project_root: ../..
-env_path: ../../.env
+env_path: .env
 
 random_seed: 0
 
@@ -72,7 +72,7 @@ paths:
   processed_dir: data/processed/cchmc_pedsnet
   run_dir: outputs/runs/cchmc_pedsnet
   report_dir: outputs/reports
-  baseline_results_dir: ../../CP_subcluster/results
+  baseline_results_dir: misc/CP_subcluster_onedrive/results
 
 paper_filtered:
   processed_dir: data/processed/paper_filtered

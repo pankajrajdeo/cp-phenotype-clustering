@@ -3,22 +3,27 @@
 Provides subcommands for data extraction, feature matrix construction,
 clustering, comparison, artifact auditing, and reproduction of the
 original CP sub-phenotype analysis.
+
+All heavy native-library imports (oracledb, sklearn, scipy, igraph, etc.)
+are deferred to the command functions that actually need them, preventing
+segfaults caused by conflicting OpenMP runtimes on macOS.
 """
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
-from .artifacts import audit_artifacts
-from .cluster import ClusterSettings, run_clustering
-from .compare import run_comparison
-from .db import smoke_test
-from .extract import extract_all
-from .interpret import run_interpretation
-from .matrix import build_feature_matrix, find_phecode_resource_paths
-from .phecodes import download_phecode_resources
-from .reproduce import ReproduceConfig, reproduce
+# OpenMP / threading guards.
+# Must be set BEFORE any native library (numpy, scipy, sklearn) is imported.
+# Prevents macOS segfaults from conflicting OpenMP runtimes (libgomp vs libomp).
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+os.environ.setdefault("KMP_WARNINGS", "FALSE")
+os.environ.setdefault("OMP_NUM_THREADS", os.environ.get("OMP_NUM_THREADS", "1"))
+os.environ.setdefault("OMP_MAX_ACTIVE_LEVELS", "1")
+
+# Lightweight imports only (no native libraries).
 from .utils import load_yaml, read_json, write_json
 
 
@@ -42,14 +47,23 @@ def env_path_from_config(config: dict) -> Path | None:
     return resolve_path(env_path, Path.cwd()) if env_path else None
 
 
-def settings_from_config(config: dict) -> ClusterSettings:
+def settings_from_config(config: dict):
+    """Build ClusterSettings from config dict. Lazy-imports cluster module."""
+    from .cluster import ClusterSettings
+
     clustering = config.get("clustering", {})
+    explicit_grid = clustering.get("resolution_grid", [])
+    if explicit_grid:
+        grid = tuple(float(v) for v in explicit_grid)
+    else:
+        grid = ClusterSettings().resolution_grid
+
     return ClusterSettings(
         pca_variance=float(clustering.get("pca_variance", 0.80)),
         pca_n_components=int(clustering["pca_n_components"]) if clustering.get("pca_n_components") else None,
         pca_svd_solver=str(clustering.get("pca_svd_solver", "full")),
         preprocess_method=str(clustering.get("preprocess_method", "zscore")),
-        normalize_total_target=float(clustering.get("normalize_total_target", 10000.0)),
+        normalize_total_target=float(clustering.get("normalize_total_target", clustering.get("target_sum", 1e4))),
         scale_max_value=float(clustering["scale_max_value"]) if clustering.get("scale_max_value") is not None else None,
         neighbors_n_pcs=int(clustering["neighbors_n_pcs"]) if clustering.get("neighbors_n_pcs") else None,
         n_neighbors=int(clustering.get("n_neighbors", 15)),
@@ -57,14 +71,17 @@ def settings_from_config(config: dict) -> ClusterSettings:
         target_clusters=int(clustering.get("target_clusters", 5)),
         discovery_min_clusters=int(clustering.get("discovery_min_clusters", 3)),
         discovery_max_clusters=int(clustering.get("discovery_max_clusters", 10)),
-        resolution_grid=tuple(float(value) for value in clustering.get("resolution_grid", []))
-        or ClusterSettings().resolution_grid,
+        resolution_grid=grid,
         random_seed=int(config.get("random_seed", 42)),
         leiden_n_iterations=int(clustering.get("leiden_n_iterations", -1)),
     )
 
 
+# Command functions (lazy imports inside each).
+
 def command_download_maps(args: argparse.Namespace) -> int:
+    from .phecodes import download_phecode_resources
+
     resources = download_phecode_resources(args.out)
     write_json(resources, Path(args.out) / "download_manifest.json")
     print(f"Downloaded Phecode resources to {args.out}")
@@ -72,6 +89,8 @@ def command_download_maps(args: argparse.Namespace) -> int:
 
 
 def command_db_smoke(args: argparse.Namespace) -> int:
+    from .db import smoke_test
+
     config = load_yaml(args.config) if args.config else {}
     result = smoke_test(env_path_from_config(config))
     print("CONNECTED")
@@ -81,6 +100,8 @@ def command_db_smoke(args: argparse.Namespace) -> int:
 
 
 def command_extract(args: argparse.Namespace) -> int:
+    from .extract import extract_all
+
     config, _ = load_config(args.config)
     summary = extract_all(
         config,
@@ -93,6 +114,8 @@ def command_extract(args: argparse.Namespace) -> int:
 
 
 def command_build_matrix(args: argparse.Namespace) -> int:
+    from .matrix import build_feature_matrix, find_phecode_resource_paths
+
     map_path, definitions_path = find_phecode_resource_paths(args.maps)
     summary = build_feature_matrix(
         Path(args.input) / "diagnoses.parquet",
@@ -116,6 +139,8 @@ def _run_interpretations_for_run(
     raw_dir: Path | None,
     random_seed: int,
 ) -> None:
+    from .interpret import run_interpretation
+
     metadata_path = processed_dir / "feature_metadata.csv" if processed_dir else matrix_path.parent / "feature_metadata.csv"
     cohort_path = raw_dir / "cohort.parquet" if raw_dir else None
     for mode in ["target5", "discovery"]:
@@ -132,6 +157,8 @@ def _run_interpretations_for_run(
 
 
 def command_cluster(args: argparse.Namespace) -> int:
+    from .cluster import run_clustering
+
     config = load_yaml(args.config) if args.config else {}
     settings = settings_from_config(config)
     result = run_clustering(args.matrix, args.out, settings)
@@ -144,6 +171,8 @@ def command_cluster(args: argparse.Namespace) -> int:
 
 
 def command_compare(args: argparse.Namespace) -> int:
+    from .compare import run_comparison
+
     result = run_comparison(
         args.run,
         args.baseline,
@@ -165,6 +194,10 @@ def _build_cluster_compare(
     cohort_filters: dict | None = None,
     clustering_overrides: dict | None = None,
 ) -> None:
+    from .cluster import run_clustering
+    from .compare import run_comparison
+    from .matrix import build_feature_matrix, find_phecode_resource_paths
+
     paths = config["paths"]
     phecode_dir = Path(paths["phecode_dir"])
     baseline_dir = Path(paths["baseline_results_dir"])
@@ -201,6 +234,9 @@ def _build_cluster_compare(
 
 
 def command_run_all(args: argparse.Namespace) -> int:
+    from .extract import extract_all
+    from .phecodes import download_phecode_resources
+
     config, _ = load_config(args.config)
     paths = config["paths"]
     phecode_dir = Path(paths["phecode_dir"])
@@ -219,6 +255,8 @@ def command_run_all(args: argparse.Namespace) -> int:
 
 
 def command_run_paper_filtered(args: argparse.Namespace) -> int:
+    from .extract import extract_all
+
     config, _ = load_config(args.config)
     paths = config["paths"]
     raw_dir = Path(paths["raw_dir"])
@@ -245,6 +283,8 @@ def command_run_paper_filtered(args: argparse.Namespace) -> int:
 
 def command_audit_artifacts(args: argparse.Namespace) -> int:
     """Run the reference artifact audit and print a summary."""
+    from .artifacts import audit_artifacts
+
     result = audit_artifacts(args.root, args.out)
     print(
         {
@@ -256,6 +296,32 @@ def command_audit_artifacts(args: argparse.Namespace) -> int:
     )
     return 0
 
+
+def command_reproduce(args: argparse.Namespace) -> int:
+    from .reproduce import ReproduceConfig, reproduce
+
+    config = ReproduceConfig(
+        pca_n_components=args.pca_n_components,
+        neighbors_n_pcs=args.neighbors_n_pcs,
+        n_neighbors=args.n_neighbors,
+        resolution=args.resolution,
+        random_seed=args.random_seed,
+    )
+    summary = reproduce(args.root, args.out, config=config)
+    sg = summary["stored_graph"]
+    ug = summary.get("umap_fresh_graph", {})
+    sk = summary["sklearn_fresh_graph"]
+    print(f"Mode A (stored graph): ARI={sg['ari_vs_reference']:.4f}  clusters={sg['cluster_counts']}")
+    if "error" not in ug:
+        print(f"Mode B (UMAP fresh):   ARI={ug['ari_vs_reference']:.4f}  clusters={ug['cluster_counts']}")
+    else:
+        print(f"Mode B (UMAP fresh):   SKIPPED - {ug['error']}")
+    print(f"Mode C (sklearn kNN):  ARI={sk['ari_vs_reference']:.4f}  clusters={sk['cluster_counts']}")
+    print(f"Report: {args.out}/reproduction_report.md")
+    return 0
+
+
+# Parser and entry point.
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="cp-phenotype")
@@ -327,28 +393,6 @@ def build_parser() -> argparse.ArgumentParser:
     repro.add_argument("--random-seed", type=int, default=0)
     repro.set_defaults(func=command_reproduce)
     return parser
-
-
-def command_reproduce(args: argparse.Namespace) -> int:
-    config = ReproduceConfig(
-        pca_n_components=args.pca_n_components,
-        neighbors_n_pcs=args.neighbors_n_pcs,
-        n_neighbors=args.n_neighbors,
-        resolution=args.resolution,
-        random_seed=args.random_seed,
-    )
-    summary = reproduce(args.root, args.out, config=config)
-    sg = summary["stored_graph"]
-    ug = summary.get("umap_fresh_graph", {})
-    sk = summary["sklearn_fresh_graph"]
-    print(f"Mode A (stored graph): ARI={sg['ari_vs_reference']:.4f}  clusters={sg['cluster_counts']}")
-    if "error" not in ug:
-        print(f"Mode B (UMAP fresh):   ARI={ug['ari_vs_reference']:.4f}  clusters={ug['cluster_counts']}")
-    else:
-        print(f"Mode B (UMAP fresh):   SKIPPED - {ug['error']}")
-    print(f"Mode C (sklearn kNN):  ARI={sk['ari_vs_reference']:.4f}  clusters={sk['cluster_counts']}")
-    print(f"Report: {args.out}/reproduction_report.md")
-    return 0
 
 
 def main(argv: list[str] | None = None) -> int:

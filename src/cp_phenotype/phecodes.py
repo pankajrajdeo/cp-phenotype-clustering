@@ -231,6 +231,8 @@ def map_diagnoses_to_phecodes(
         )
         .reset_index()
     )
+    for col in ["rows", "mapped_rows", "unique_codes"]:
+        audit[col] = pd.to_numeric(audit[col], errors="coerce").fillna(0).astype(int)
     audit["mapping_rate"] = audit["mapped_rows"] / audit["rows"]
 
     unmapped_summary = (
@@ -239,4 +241,7 @@ def map_diagnoses_to_phecodes(
         .reset_index()
         .sort_values(["rows", "persons"], ascending=False)
     )
+    for col in ["rows", "persons"]:
+        if col in unmapped_summary.columns:
+            unmapped_summary[col] = pd.to_numeric(unmapped_summary[col], errors="coerce").fillna(0).astype(int)
     return events, audit, unmapped_summary
