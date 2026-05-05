@@ -321,6 +321,18 @@ def command_reproduce(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_build_reference_matrix(args: argparse.Namespace) -> int:
+    from .reference_pipeline import build_reference_matrix
+
+    summary = build_reference_matrix(
+        args.root,
+        args.out,
+        require_gmfcs=not args.include_missing_gmfcs,
+    )
+    print(summary)
+    return 0
+
+
 # Parser and entry point.
 
 def build_parser() -> argparse.ArgumentParser:
@@ -392,6 +404,19 @@ def build_parser() -> argparse.ArgumentParser:
     repro.add_argument("--resolution", type=float, default=0.5)
     repro.add_argument("--random-seed", type=int, default=0)
     repro.set_defaults(func=command_reproduce)
+
+    ref_matrix = subparsers.add_parser(
+        "build-reference-matrix",
+        help="Rebuild the final matrix from recovered frozen reference artifacts",
+    )
+    ref_matrix.add_argument("--root", default="data/original_reference", help="Root of reference artifacts")
+    ref_matrix.add_argument("--out", default="data/processed/reference_rebuild", help="Output directory")
+    ref_matrix.add_argument(
+        "--include-missing-gmfcs",
+        action="store_true",
+        help="Keep all patients in the recovered pivot instead of applying the final GMFCS-present filter",
+    )
+    ref_matrix.set_defaults(func=command_build_reference_matrix)
     return parser
 
 
