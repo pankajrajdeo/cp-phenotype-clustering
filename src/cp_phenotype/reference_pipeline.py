@@ -19,13 +19,8 @@ from .utils import ensure_dir, safe_to_csv, safe_to_parquet, write_json
 
 REFERENCE_DEMOGRAPHIC_COLUMNS = [
     "PERSON_ID",
-    "BIRTH_DATETIME",
     "GENDER_CONCEPT_ID",
     "GENDER_SOURCE_VALUE",
-    "YEAR_OF_BIRTH",
-    "MONTH_OF_BIRTH",
-    "DAY_OF_BIRTH",
-    "FIRST_VISIT_DATETIME",
     "NUM_VISITS_TOTAL",
     "RACE_CONCEPT_ID",
     "RACE_SOURCE_VALUE",
@@ -33,7 +28,6 @@ REFERENCE_DEMOGRAPHIC_COLUMNS = [
     "DEATH_DATE",
     "GMFCS_M",
     "CP_DX_SS",
-    "CP_DX_DATE",
     "CP_DX_AGE_INT",
     "NUM_VISITS_TOTAL_FILTERED",
     "VISIT_LENGTH",
@@ -41,6 +35,17 @@ REFERENCE_DEMOGRAPHIC_COLUMNS = [
     "gmfm_score",
     "qol_score",
 ]
+
+
+DIRECT_DATE_COLUMNS = {
+    "BIRTH_DATETIME",
+    "YEAR_OF_BIRTH",
+    "MONTH_OF_BIRTH",
+    "DAY_OF_BIRTH",
+    "FIRST_VISIT_DATETIME",
+    "DEATH_DATE",
+    "CP_DX_DATE",
+}
 
 
 def _clean_phecode(value: object) -> str:
@@ -80,6 +85,21 @@ def _load_reference_patient_metadata(paths: ArtifactPaths) -> pd.DataFrame:
     )
     metadata["person_id"] = metadata["PERSON_ID"].map(_norm_id)
     return metadata
+
+
+def strip_direct_date_fields(metadata: pd.DataFrame) -> pd.DataFrame:
+    """Remove direct date/year fields from shareable reference metadata.
+
+    The paper-facing cohort metadata keeps derived fields such as
+    CP_DX_AGE_INT, VISIT_LENGTH, and visit counts, but removes dates,
+    birth dates, and year/month/day-of-birth values. Death is retained only as
+    a binary indicator when a source death date is available.
+    """
+    result = metadata.copy()
+    if "DEATH_DATE" in result.columns:
+        result["DEATH"] = result["DEATH_DATE"].notna().astype("uint8")
+    drop_columns = [col for col in result.columns if col.upper() in DIRECT_DATE_COLUMNS]
+    return result.drop(columns=drop_columns, errors="ignore")
 
 
 def _load_h5ad_binary(paths: ArtifactPaths) -> pd.DataFrame | None:
@@ -128,6 +148,7 @@ def build_reference_matrix(
 
     matrix = pivot.loc[selected_ids].copy()
     metadata = metadata.set_index("person_id").loc[selected_ids].reset_index()
+    metadata = strip_direct_date_fields(metadata)
 
     h5ad_matrix = _load_h5ad_binary(paths)
     verification: dict[str, Any] = {

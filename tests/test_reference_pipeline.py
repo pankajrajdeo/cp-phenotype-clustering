@@ -25,6 +25,11 @@ def test_build_reference_matrix_applies_final_gmfcs_filter(tmp_path) -> None:
                 ["2020-01-01", "2020-02-01", "2020-01-01", "2020-01-01"]
             ),
             "GMFCS_M": ["I", "I", None, "III"],
+            "YEAR_OF_BIRTH": [2010, 2010, 2011, 2012],
+            "BIRTH_DATETIME": pd.to_datetime(["2010-01-01", "2010-01-01", "2011-01-01", "2012-01-01"]),
+            "DEATH_DATE": [pd.NaT, pd.NaT, pd.Timestamp("2023-01-01"), pd.Timestamp("2024-01-01")],
+            "CP_DX_DATE": pd.to_datetime(["2020-03-01", "2020-03-01", "2020-03-01", "2020-03-01"]),
+            "CP_DX_AGE_INT": [10, 10, 9, 8],
             "NUM_VISITS_TOTAL_FILTERED": [3, 3, 5, 4],
             "INPERSON_VISIT_NUM": [3, 3, 5, 4],
         }
@@ -40,6 +45,12 @@ def test_build_reference_matrix_applies_final_gmfcs_filter(tmp_path) -> None:
     assert list(matrix.index) == ["1", "3"]
     assert list(matrix.columns) == ["100", "200"]
     assert cohort["person_id"].tolist() == ["1", "3"]
+    assert "YEAR_OF_BIRTH" not in cohort.columns
+    assert "BIRTH_DATETIME" not in cohort.columns
+    assert "DEATH_DATE" not in cohort.columns
+    assert "CP_DX_DATE" not in cohort.columns
+    assert "CP_DX_AGE_INT" in cohort.columns
+    assert "DEATH" in cohort.columns
 
 
 def test_build_reference_matrix_can_keep_missing_gmfcs(tmp_path) -> None:

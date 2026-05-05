@@ -171,7 +171,9 @@ Recommended reproducibility tiers:
    download public Phecode maps. No patient-level reproduction is possible.
 2. **Reference artifact bundle:** place the approved `data/original_reference/`
    files locally and run `audit-artifacts`, `build-reference-matrix`, and
-   `reproduce`.
+   `reproduce`. The generated `cohort_reference.csv` strips direct date/year
+   fields and keeps derived fields such as age at CP diagnosis, visit counts,
+   duration of care, GMFCS, and a binary death indicator.
 3. **Institutional validation:** run extraction and clustering against an
    approved local OMOP/PEDSnet/REHAB-style data source using a site config.
 
