@@ -6,6 +6,10 @@ The pipeline converts ICD-coded clinical events into patient-level Phecode featu
 
 **License:** non-commercial research use only. Commercial use, paid service use, product integration, or production deployment requires separate written permission. See `LICENSE`.
 
+The license covers only the software and documentation in this repository. It
+does not grant access to, or redistribution rights for, any controlled clinical
+data or reference artifacts.
+
 ## Objectives
 
 - Reproduce an existing five-cluster cerebral palsy sub-phenotype reference result from controlled local artifacts.
@@ -119,6 +123,27 @@ Set `CP_PHENOTYPE_ID_SALT` only when generating stable deidentified study IDs fo
 
 The pipeline expects controlled data to be stored locally under ignored directories.
 
+### Data Access Model
+
+This repository is intended to be reproducible from code plus an approved data
+bundle, not from GitHub alone. The code, tests, and public Phecode download
+logic can be shared in source control. Patient-level tables, reference AnnData
+objects, extracted EHR rows, feature matrices, cluster assignments, and generated
+reports must be provided separately through the project-approved data-use or
+institutional transfer process.
+
+For collaborators reproducing the reference result, the required controlled
+bundle should be staged at:
+
+```text
+data/original_reference/
+```
+
+The exact stored-graph replay uses the controlled AnnData artifact listed below.
+Published supplementary tables are useful for review and sanity checks, but by
+themselves they are not sufficient to replay the stored neighbor graph exactly
+unless the controlled graph/PCA artifact is also provided.
+
 Reference artifact replay expects:
 
 ```text
@@ -139,6 +164,16 @@ data/original_reference/
 ```
 
 The `.h5ad` file is the original Scanpy AnnData object containing the stored transformed matrix, PCA embeddings, neighbor graph, and cluster labels. It is read as a controlled reference artifact for exact reproduction; the pipeline does not write `.h5ad` as an output format. New institutional validation runs produce `parquet`, `csv`, and `json`.
+
+Recommended reproducibility tiers:
+
+1. **Code-only clone:** install the package, run tests, inspect configs, and
+   download public Phecode maps. No patient-level reproduction is possible.
+2. **Reference artifact bundle:** place the approved `data/original_reference/`
+   files locally and run `audit-artifacts`, `build-reference-matrix`, and
+   `reproduce`.
+3. **Institutional validation:** run extraction and clustering against an
+   approved local OMOP/PEDSnet/REHAB-style data source using a site config.
 
 Site validation expects extracted raw files such as:
 
