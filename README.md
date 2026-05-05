@@ -134,6 +134,8 @@ data/original_reference/
     `-- Phecode_map_v1_2_icd10cm.csv
 ```
 
+The `.h5ad` file is the original Scanpy AnnData object containing the stored transformed matrix, PCA embeddings, neighbor graph, and cluster labels. It is read as a controlled reference artifact for exact reproduction; the pipeline does not write `.h5ad` as an output format. New institutional validation runs produce `parquet`, `csv`, and `json`.
+
 Site validation expects extracted raw files such as:
 
 ```text
