@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cp-phenotype"
+version = "0.2.0"
+description = "Validation and reproduction pipeline for CP multimorbidity sub-phenotype clusters."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = {text = "Non-commercial research use only"}
+authors = [
+  { name = "CP Phenotype Team" }
+]
+dependencies = [
+  "anndata>=0.10,<0.12",
+  "igraph>=0.11,<0.12",
+  "leidenalg>=0.10,<0.11",
+  "matplotlib>=3.8,<4",
+  "numpy>=1.26,<3",
+  "openpyxl>=3.1,<4",
+  "oracledb>=2.4,<4",
+  "pandas>=2.2,<3.1",
+  "pyarrow>=14,<22",
+  "python-dotenv>=1,<2",
+  "pyyaml>=6,<7",
+  "scikit-learn>=1.4,<2",
+  "scipy>=1.11,<2",
+  "seaborn>=0.13,<1",
+  "statsmodels>=0.14,<1",
+  "tqdm>=4.66,<5",
+  "umap-learn>=0.5,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8,<9"
+]
+interpret = [
+  "shap>=0.45,<1",
+  "xgboost>=2,<4"
+]
+
+[project.scripts]
+cp-phenotype = "cp_phenotype.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

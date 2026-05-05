@@ -1,0 +1,69 @@
+project_root: ../..
+env_path: ../../.env
+
+random_seed: 0
+
+oracle:
+  cohort_schema: REHAB
+  rehab_schema: REHAB
+
+sources:
+  cohort_table: REHAB.CP_PERSON
+  visits_table: REHAB.VISIT_OCCURRENCE
+  observations_table: REHAB.OBSERVATION
+  deaths_table: REHAB.DEATH
+  death_fallback_table: CP_PEDSNET.OMOP_DEATH
+  diagnosis_table: REHAB.CP_CONDITION_DX_SYSTEM
+  diagnosis_fallback_table: REHAB.CP_CONDITION_DX_SYSTEM
+  diagnosis_mode: cp_person_conditions
+  diagnosis_distinct_patient_code: true
+  minimum_diagnosis_patients: 0
+
+gmfcs:
+  source_patterns:
+    - GMFCS
+  preferred_sources:
+    - GMFCS - E&R Level
+    - GMFCS Status
+    - GMFCS Level
+    - (Row Changed 11/18/2011) GMFCS
+
+extraction:
+  visits_mode: summary
+
+cohort_filters:
+  require_gmfcs: true
+  min_visits: 3
+
+feature_matrix:
+  min_patients: 4
+  feature_prefix: phe_
+  # The reference pivot has 1,313 feature columns from 1,522 mapped Phecodes.
+  # Aggregate audit indicates this is equivalent to prevalence >=4, excluding
+  # the CP-defining feature and torsion dystonia.
+  exclude_phecodes:
+    - "343.0"  # Infantile cerebral palsy
+    - "333.4"  # Torsion dystonia
+
+clustering:
+  preprocess_method: scanpy_log1p
+  normalize_total_target: 10000
+  pca_n_components: 50
+  pca_svd_solver: arpack
+  neighbors_n_pcs: 15
+  n_neighbors: 30
+  graph_method: umap
+  leiden_n_iterations: -1
+  target_clusters: 5
+  discovery_min_clusters: 3
+  discovery_max_clusters: 10
+  resolution_grid:
+    - 0.50
+
+paths:
+  phecode_dir: data/external/phecode
+  raw_dir: data/raw/rehab_reference_original
+  processed_dir: data/processed/rehab_reference_original
+  run_dir: outputs/runs/rehab_reference_original
+  report_dir: outputs/reports/rehab_reference_original
+  baseline_results_dir: ../../CP_subcluster/results

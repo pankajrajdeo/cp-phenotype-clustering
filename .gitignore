@@ -1,0 +1,50 @@
+# Secrets and environments
+.env
+.env.*
+!.env.example
+.venv/
+.venv-cpnet/
+.venv-cp-phenotype/
+.venv*/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Patient-level and generated data
+data/
+outputs/
+*.parquet
+*.csv
+*.xlsx
+*.pkl
+*.joblib
+*.h5ad
+*.db
+*.sqlite
+*.sqlite3
+*.log
+*.tmp
+*.bak
+*.key
+*.pem
+
+# Packaging / coverage
+build/
+dist/
+htmlcov/
+.coverage
+coverage.xml
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Old / Misc Root Items
+misc/
+/explore.py
+/db.py

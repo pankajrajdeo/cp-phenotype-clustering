@@ -1,0 +1,69 @@
+CP Phenotype Clustering Non-Commercial Research License
+
+Copyright (c) 2026 CP Phenotype Team
+
+Permission is granted, free of charge, to use, copy, modify, and share this
+software and associated documentation files for non-commercial research,
+education, evaluation, and reproducibility purposes, subject to the conditions
+below.
+
+1. Non-Commercial Use Only
+
+Commercial use is not permitted without prior written permission from the
+copyright holders.
+
+For purposes of this license, commercial use includes, but is not limited to:
+
+- use in or for a commercial product, service, platform, or paid offering;
+- use by or on behalf of a for-profit entity for business operations, product
+  development, service delivery, consulting, analytics, or revenue-generating
+  activity;
+- sublicensing, selling, renting, leasing, or otherwise monetizing the software;
+- using the software to provide paid clinical, research, analytics, or data
+  processing services to third parties.
+
+2. Permitted Non-Commercial Uses
+
+Permitted non-commercial uses include:
+
+- academic, institutional, or nonprofit research;
+- education and training;
+- reproducibility studies;
+- internal evaluation in approved research environments;
+- modification and sharing of derivative versions for non-commercial research,
+  provided this license notice is preserved.
+
+3. No Patient Data Included
+
+This license applies only to the software and documentation in this repository.
+It does not grant rights to any patient-level data, clinical records, reference
+artifacts, derived feature matrices, cluster assignments, generated reports, or
+other controlled data.
+
+4. Attribution and Notice
+
+Copies or substantial portions of the software must include this license notice.
+Modified versions must clearly indicate that changes were made.
+
+5. No Clinical Warranty or Medical Advice
+
+The software is provided for research use. It is not a medical device and is not
+intended to diagnose, treat, prevent, or manage disease, or to make clinical
+decisions without independent validation and appropriate regulatory, clinical,
+and institutional review.
+
+6. No Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, NONINFRINGEMENT, DATA ACCURACY, OR FITNESS
+FOR CLINICAL OR REGULATORY USE. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM,
+OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+7. Commercial Licensing
+
+Commercial licensing, production deployment, paid service use, or other use
+outside this license requires separate written permission from the copyright
+holders.
