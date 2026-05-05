@@ -2,7 +2,8 @@
 
 Three reproduction modes:
   stored-graph  Run Leiden on the neighbor graph stored in the reference
-                h5ad.  Yields ARI = 1.0 (exact reproduction).
+                h5ad.  This is an artifact-integrity replay, not an
+                end-to-end graph reconstruction.
   umap-fresh    Build the full pipeline from the raw pivot CSV using
                 UMAP's fuzzy simplicial set.  No Scanpy dependency.
   sklearn-fresh Build using sklearn exact kNN (fully portable).
@@ -240,7 +241,7 @@ def reproduce(
     out_dir: str | Path,
     config: ReproduceConfig | None = None,
 ) -> dict[str, Any]:
-    """Run both stored-graph and fresh-graph reproduction. Returns summary dict."""
+    """Run stored-graph replay plus fresh-graph reproduction checks."""
     if config is None:
         config = ReproduceConfig()
 
@@ -428,7 +429,7 @@ def _write_report(summary: dict[str, Any], out_path: Path) -> None:
     lines = [
         "# CP Sub-phenotype Reproduction Report",
         "",
-        "Reproduces the reference A-E clusters from local artifacts using three methods.",
+        "Evaluates the recovered reference A-E workflow using one stored-graph replay and two fresh graph reconstructions.",
         "**No Scanpy dependency**: uses numpy, sklearn, umap-learn, igraph, and leidenalg.",
         "",
         "## Configuration",
@@ -455,7 +456,7 @@ def _write_report(summary: dict[str, Any], out_path: Path) -> None:
         "",
         "## Results",
         "",
-        "### Mode A: Leiden on Stored Reference Graph",
+        "### Mode A: Stored-Graph Replay",
         "",
         f"- **ARI vs reference: {sg['ari_vs_reference']:.4f}**",
         f"- Cluster sizes: `{sg['cluster_counts']}`",
@@ -465,9 +466,9 @@ def _write_report(summary: dict[str, Any], out_path: Path) -> None:
     ]
 
     if sg["ari_vs_reference"] == 1.0:
-        lines.append("> PERFECT REPRODUCTION on stored graph")
+        lines.append("> Exact stored-graph replay. This verifies artifact integrity and Leiden parameters; it is not an end-to-end graph reconstruction.")
     else:
-        lines.append(f"> ARI = {sg['ari_vs_reference']:.4f} on stored graph")
+        lines.append(f"> Stored-graph replay ARI = {sg['ari_vs_reference']:.4f}")
     lines.append("")
 
     # Mode B: UMAP fresh graph
@@ -519,10 +520,13 @@ def _write_report(summary: dict[str, Any], out_path: Path) -> None:
         "",
         "## Interpretation",
         "",
-        "**Mode A** proves the stored graph + Leiden exactly recovers the reference labels.",
-        "This is the ground truth: the pipeline logic and parameters are correct.",
+        "**Mode A** replays Leiden on the stored reference graph.",
+        "It verifies that the controlled artifact and Leiden parameters recover the reference labels exactly.",
+        "It should not be presented as end-to-end reproduction from raw cohort data.",
         "",
-        "**Mode B** (UMAP fresh graph) uses the same graph algorithm as the reference workflow",
+        "**Mode B** is the primary end-to-end reproduction check from the binary input matrix.",
+        "It rebuilds preprocessing, PCA, and a UMAP fuzzy graph before Leiden.",
+        "It uses the same graph family as the reference workflow",
         "(UMAP's `fuzzy_simplicial_set`), just without requiring Scanpy.",
         "ARI gaps here reflect UMAP graph-construction version differences.",
         "",

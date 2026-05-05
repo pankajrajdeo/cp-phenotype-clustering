@@ -163,7 +163,7 @@ data/original_reference/
     `-- Phecode_map_v1_2_icd10cm.csv
 ```
 
-The `.h5ad` file is the original Scanpy AnnData object containing the stored transformed matrix, PCA embeddings, neighbor graph, and cluster labels. It is read as a controlled reference artifact for exact reproduction; the pipeline does not write `.h5ad` as an output format. New institutional validation runs produce `parquet`, `csv`, and `json`.
+The `.h5ad` file is the original Scanpy AnnData object containing the stored transformed matrix, PCA embeddings, neighbor graph, and cluster labels. It is read as a controlled reference artifact for stored-graph replay and verification; the pipeline does not write `.h5ad` as an output format. New institutional validation runs produce `parquet`, `csv`, and `json`.
 
 Recommended reproducibility tiers:
 
@@ -290,7 +290,11 @@ The recovered reference-style workflow is:
 6. Build a UMAP fuzzy graph from the first 15 PCs with 30 neighbors.
 7. Run Leiden clustering at resolution `0.5` with fixed random seed `0`.
 
-The stored reference graph exactly reproduces the reference labels. Fresh graph construction is close but may vary slightly by package versions and graph implementation.
+The stored reference graph exactly replays the reference labels. That is an
+artifact-integrity check, not an end-to-end graph reconstruction. The primary
+fresh reproduction check rebuilds preprocessing, PCA, the UMAP fuzzy graph, and
+Leiden from the binary matrix. Fresh graph construction is close but can vary by
+package versions and graph implementation.
 
 This preprocessing was recovered from the reference implementation. It is a
 single-cell-inspired transform applied to a binary clinical feature matrix, and
