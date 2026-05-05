@@ -225,8 +225,8 @@ def command_run_paper_filtered(args: argparse.Namespace) -> int:
     if not (raw_dir / "diagnoses.parquet").exists() or not (raw_dir / "cohort.parquet").exists():
         extract_all(config, raw_dir, env_path=env_path_from_config(config), limit_rows=args.limit_rows)
     profile = config.get("paper_filtered", {})
-    processed_dir = Path(profile.get("processed_dir", "data/processed/cchmc_pedsnet_paper_filtered"))
-    run_dir = Path(profile.get("run_dir", "outputs/runs/cchmc_pedsnet_paper_filtered"))
+    processed_dir = Path(profile.get("processed_dir", "data/processed/paper_filtered"))
+    run_dir = Path(profile.get("run_dir", "outputs/runs/paper_filtered"))
     report_dir = Path(profile.get("report_dir", "outputs/reports/paper_filtered"))
     cohort_filters = profile.get("cohort_filters", {"require_gmfcs": True, "min_visits": 3})
     clustering_overrides = profile.get("clustering", {"pca_n_components": 15})
@@ -345,7 +345,7 @@ def command_reproduce(args: argparse.Namespace) -> int:
     if "error" not in ug:
         print(f"Mode B (UMAP fresh):   ARI={ug['ari_vs_reference']:.4f}  clusters={ug['cluster_counts']}")
     else:
-        print(f"Mode B (UMAP fresh):   SKIPPED — {ug['error']}")
+        print(f"Mode B (UMAP fresh):   SKIPPED - {ug['error']}")
     print(f"Mode C (sklearn kNN):  ARI={sk['ari_vs_reference']:.4f}  clusters={sk['cluster_counts']}")
     print(f"Report: {args.out}/reproduction_report.md")
     return 0

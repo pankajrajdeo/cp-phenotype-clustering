@@ -119,7 +119,7 @@ def write_validation_report(
     out_path = Path(out_path)
     ensure_dir(out_path.parent)
     lines = [
-        "# CPNet PEDSnet Validation Summary",
+        "# CP Phenotype Validation Summary",
         "",
         "## Clustering Run",
         f"- Patients: {manifest.get('n_patients')}",

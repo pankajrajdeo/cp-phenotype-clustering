@@ -1,4 +1,4 @@
-"""Oracle database connectivity for REHAB/PEDSnet schemas.
+"""Oracle database connectivity for clinical data schemas.
 
 Handles connection setup via environment variables, TNS configuration,
 and basic smoke-testing of the database connection.

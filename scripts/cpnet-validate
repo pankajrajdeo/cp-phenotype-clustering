@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-# Backward-compatible alias for the older project name. Prefer scripts/cp-phenotype.
-set -euo pipefail
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [[ -x "$ROOT_DIR/.venv-cp-phenotype/bin/python" ]]; then
-  "$ROOT_DIR/.venv-cp-phenotype/bin/python" -m cp_phenotype.cli "$@"
-else
-  PYTHONPATH="$ROOT_DIR/src${PYTHONPATH:+:$PYTHONPATH}" python3 -m cp_phenotype.cli "$@"
-fi

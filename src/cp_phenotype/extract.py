@@ -1,4 +1,4 @@
-"""Data extraction from REHAB/PEDSnet Oracle schemas.
+"""Data extraction from Oracle clinical data schemas.
 
 Queries patient demographics, diagnoses, visits, procedures,
 drugs, death records, and GMFCS scores from the configured

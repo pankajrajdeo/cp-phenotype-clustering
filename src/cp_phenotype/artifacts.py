@@ -483,7 +483,7 @@ def _write_artifact_report(summary: dict[str, Any], out_path: str | Path) -> Non
             "- The stored graph plus Leiden reproduces the reference labels exactly.",
             "- The fresh UMAP graph is the closest portable rerun path, but remains graph-version sensitive.",
             "- The 5% in any Cluster x GMFCS subgroup rule appears to describe downstream reporting / interpretation; the clustering pivot itself is broader.",
-            "- Once the artifact replay is accepted, rerun the same recovered preprocessing and UMAP graph strategy against PEDSnet/OMOP or the closest available REHAB/PEDSnet extract.",
+            "- Once the artifact replay is accepted, rerun the same recovered preprocessing and UMAP graph strategy against the institutional OMOP extract.",
         ]
     )
     out_path = Path(out_path)

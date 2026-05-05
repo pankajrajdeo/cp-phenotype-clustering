@@ -531,7 +531,7 @@ def _write_report(summary: dict[str, Any], out_path: Path) -> None:
         "",
         "### Recommendation",
         "",
-        "For PEDSnet / Stanford validation, use **Mode B** (UMAP graph).",
+        "For institutional validation, use **Mode B** (UMAP graph).",
         "It is the closest fresh graph implementation to the stored Scanpy graph,",
         "requires only `umap-learn` (not Scanpy), and avoids the known mismatch from plain sklearn kNN.",
     ])

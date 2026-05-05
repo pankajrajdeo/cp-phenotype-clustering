@@ -1,8 +1,7 @@
 """Post-clustering interpretation and feature importance analysis.
 
-Uses SHAP values and XGBoost to identify the most discriminative
-Phecodes for each cluster, producing ranked feature importance
-tables and summary reports.
+Computes cluster-level Phecode enrichment and RandomForest feature
+importance tables for downstream clinical review.
 """
 from __future__ import annotations
 

@@ -34,8 +34,7 @@ This repository does not contain patient-level data, extracted EHR tables, refer
 |   |-- cchmc.yaml                 # Site validation profile
 |   `-- paper_reproduction.yaml    # Reference reproduction profile
 |-- scripts/
-|   |-- cp-phenotype               # Local CLI wrapper
-|   `-- cpnet-validate             # Backward-compatible alias
+|   `-- cp-phenotype               # Local CLI wrapper
 |-- src/cp_phenotype/
 |   |-- artifacts.py               # Reference artifact auditing
 |   |-- cli.py                     # Command-line interface
@@ -273,7 +272,7 @@ git check-ignore -v .env data outputs misc .venv-cp-phenotype
 
 ## Development Notes
 
-`cp-phenotype` is the preferred CLI name. `scripts/cpnet-validate` remains as a backward-compatible alias for older local commands.
+`cp-phenotype` is the project CLI name.
 
 ## License
 
