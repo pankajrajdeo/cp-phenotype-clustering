@@ -1,16 +1,19 @@
+# Template for future PEDSnet validation.
+#
+# Fill this in only after Alka/Janet confirm:
+# - the exact exposed PEDSnet condition/diagnosis table name,
+# - whether standard condition_concept_id, condition_source_value, ICD, or SNOMED
+#   fields should drive Phecode mapping,
+# - the exact crosswalk table and join columns if reference-cohort alignment is needed.
+#
+# Do not rely on direct person_id overlap with REHAB. The schemas use different ETLs.
+
 project_root: ../..
 env_path: .env
 
 random_seed: 0
 
-oracle:
-  cohort_schema: CP_PEDSNET
-
 sources:
-  # Strict CCHMC PEDSnet profile.
-  # The condition/diagnosis table was missing as of the May 5, 2026 meeting.
-  # Replace diagnosis_table with the exact table name once Alka/Janet expose it.
-  # Direct person_id joins to REHAB are invalid because the schemas use different ETLs.
   cohort_table: CP_PEDSNET.OMOP_PERSON
   visits_table: CP_PEDSNET.OMOP_VISIT_OCCURRENCE
   observations_table: CP_PEDSNET.OMOP_OBSERVATION
@@ -20,14 +23,11 @@ sources:
   diagnosis_distinct_patient_code: true
   minimum_diagnosis_patients: 0
 
-gmfcs:
-  source_patterns:
-    - GMFCS
-  preferred_sources:
-    - GMFCS - E&R Level
-    - GMFCS Status
-    - GMFCS Level
-    - (Row Changed 11/18/2011) GMFCS
+crosswalk:
+  status: pending
+  candidate_person_source_field: CP_PEDSNET.OMOP_PERSON.person_source_value
+  confirmed_table: null
+  confirmed_join: null
 
 extraction:
   visits_mode: summary
@@ -36,8 +36,8 @@ feature_matrix:
   min_patients: 4
   feature_prefix: phe_
   exclude_phecodes:
-    - "343.0"  # Infantile cerebral palsy
-    - "333.4"  # Torsion dystonia
+    - "343.0"
+    - "333.4"
 
 cohort_filters:
   require_gmfcs: true
@@ -60,8 +60,8 @@ clustering:
 
 paths:
   phecode_dir: data/external/phecode
-  raw_dir: data/raw/cchmc_pedsnet
-  processed_dir: data/processed/cchmc_pedsnet
-  run_dir: outputs/runs/cchmc_pedsnet
-  report_dir: outputs/reports
+  raw_dir: data/raw/pedsnet_validation
+  processed_dir: data/processed/pedsnet_validation
+  run_dir: outputs/runs/pedsnet_validation
+  report_dir: outputs/reports/pedsnet_validation
   baseline_results_dir: misc/CP_subcluster_onedrive/results

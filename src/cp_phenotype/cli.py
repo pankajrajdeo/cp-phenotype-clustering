@@ -333,6 +333,24 @@ def command_build_reference_matrix(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_privacy_check(args: argparse.Namespace) -> int:
+    from .privacy import run_privacy_check
+
+    summary = run_privacy_check(
+        args.assignments,
+        args.cohort,
+        args.out,
+        threshold=args.threshold,
+        cluster_col=args.cluster_col,
+        gmfcs_col=args.gmfcs_col,
+        person_col=args.person_col,
+        assignment_person_col=args.assignment_person_col,
+        cohort_person_col=args.cohort_person_col,
+    )
+    print(summary)
+    return 0
+
+
 # Parser and entry point.
 
 def build_parser() -> argparse.ArgumentParser:
@@ -417,6 +435,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="Keep all patients in the recovered pivot instead of applying the final GMFCS-present filter",
     )
     ref_matrix.set_defaults(func=command_build_reference_matrix)
+
+    privacy = subparsers.add_parser(
+        "privacy-check",
+        help="Audit Cluster x GMFCS subgroup sizes for controlled data sharing",
+    )
+    privacy.add_argument("--assignments", required=True, help="Cluster assignment CSV/parquet")
+    privacy.add_argument("--cohort", required=True, help="Cohort or reference metadata CSV/parquet")
+    privacy.add_argument("--out", default="outputs/reports/privacy_check", help="Output directory")
+    privacy.add_argument("--threshold", type=int, default=10, help="Minimum subgroup size")
+    privacy.add_argument("--cluster-col", help="Cluster column override")
+    privacy.add_argument("--gmfcs-col", help="GMFCS column override")
+    privacy.add_argument("--person-col", default="person_id", help="Person ID column name")
+    privacy.add_argument("--assignment-person-col", help="Assignment person ID column override")
+    privacy.add_argument("--cohort-person-col", help="Cohort person ID column override")
+    privacy.set_defaults(func=command_privacy_check)
     return parser
 
 

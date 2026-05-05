@@ -48,3 +48,6 @@ coverage.xml
 misc/
 /explore.py
 /db.py
+/action_items.md
+/scratch/
+/notes/

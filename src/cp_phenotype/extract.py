@@ -449,9 +449,10 @@ def extract_all(
     else:
         visits = extract_visit_summary(sources["visits_table"], sources["cohort_table"], env_path)
     safe_to_parquet(visits, out_dir / "visits.parquet")
+    death_fallback_table = sources.get("death_fallback_table", sources["deaths_table"])
     deaths = extract_deaths(
         sources["deaths_table"],
-        sources["death_fallback_table"],
+        death_fallback_table,
         sources["cohort_table"],
         env_path,
         limit_rows,
@@ -469,7 +470,7 @@ def extract_all(
         sources["visits_table"],
         sources["observations_table"],
         sources["deaths_table"],
-        sources["death_fallback_table"],
+        death_fallback_table,
         sources["diagnosis_table"],
     ]
     if fallback_used:

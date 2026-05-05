@@ -1,3 +1,7 @@
+# Live REHAB/Clarity-style reference validation profile.
+# This is intentionally separate from PEDSnet validation and must not be used
+# as an automatic fallback for PEDSnet configs.
+
 project_root: ../..
 env_path: .env
 

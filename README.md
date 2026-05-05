@@ -31,8 +31,10 @@ This repository does not contain patient-level data, extracted EHR tables, refer
 ```text
 .
 |-- configs/
-|   |-- cchmc.yaml                 # Site validation profile
-|   `-- paper_reproduction.yaml    # Reference reproduction profile
+|   |-- cchmc.yaml                 # Strict CCHMC PEDSnet validation profile
+|   |-- paper_reproduction.yaml    # Reference reproduction profile
+|   |-- pedsnet_validation.yaml    # Future multi-site PEDSnet template
+|   `-- rehab_reference_live.yaml  # Explicit live REHAB reference profile
 |-- scripts/
 |   `-- cp-phenotype               # Local CLI wrapper
 |-- src/cp_phenotype/
@@ -45,6 +47,8 @@ This repository does not contain patient-level data, extracted EHR tables, refer
 |   |-- interpret.py               # Enrichment and feature-importance reports
 |   |-- matrix.py                  # Patient x Phecode matrix construction
 |   |-- phecodes.py                # Phecode map download and ICD mapping
+|   |-- privacy.py                 # Subgroup-size audit for controlled sharing
+|   |-- reference_pipeline.py      # Rebuild final matrix from reference artifacts
 |   |-- reproduce.py               # Reference artifact reproduction
 |   `-- utils.py                   # Shared I/O and ID helpers
 |-- tests/
@@ -177,6 +181,31 @@ Run an Oracle-backed site validation profile:
 cp-phenotype run-all --config configs/cchmc.yaml
 ```
 
+Run the live REHAB/Clarity-style reference validation profile:
+
+```bash
+cp-phenotype run-all --config configs/rehab_reference_live.yaml
+```
+
+`configs/rehab_reference_live.yaml` is intentionally separate from PEDSnet
+validation. It should not be used as an automatic fallback for PEDSnet.
+
+Run strict CCHMC PEDSnet validation after the PEDSnet condition table is exposed:
+
+```bash
+cp-phenotype run-all --config configs/cchmc.yaml
+```
+
+As of the May 5, 2026 project review, PEDSnet validation depends on two
+infrastructure confirmations from the data team:
+
+- the exact PEDSnet condition/diagnosis table name and available diagnosis fields
+- the exact person-ID crosswalk table and join columns, if reference-cohort
+  alignment is required
+
+Do not rely on direct `person_id` overlap between PEDSnet and REHAB/Clarity
+schemas; those IDs come from different ETLs.
+
 Run the validation workflow step by step:
 
 ```bash
@@ -204,6 +233,16 @@ cp-phenotype cluster \
   --raw-dir data/raw/cchmc_pedsnet
 ```
 
+Audit Cluster x GMFCS subgroup sizes for controlled data sharing:
+
+```bash
+cp-phenotype privacy-check \
+  --assignments outputs/reports/reproduce/reproduction_assignments.csv \
+  --cohort data/original_reference/data/cpdiag_adata_t_all_obs.csv \
+  --out outputs/reports/privacy_check \
+  --threshold 10
+```
+
 ## Clustering Method
 
 The recovered reference-style workflow is:
@@ -217,6 +256,13 @@ The recovered reference-style workflow is:
 7. Run Leiden clustering at resolution `0.5` with fixed random seed `0`.
 
 The stored reference graph exactly reproduces the reference labels. Fresh graph construction is close but may vary slightly by package versions and graph implementation.
+
+This preprocessing was recovered from the reference implementation. It is a
+single-cell-inspired transform applied to a binary clinical feature matrix, and
+it normalizes total comorbidity burden. Alternative encodings such as raw
+binary features, TF-IDF weighting, or categorical-data methods may emphasize
+different clinical structure and should be evaluated as future validation work,
+not substituted into the paper reproduction workflow.
 
 ## Outputs
 
