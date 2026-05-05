@@ -106,3 +106,34 @@ def test_build_feature_matrix_excludes_phecodes(tmp_path) -> None:
 
     assert summary["excluded_phecodes"] == ["343.0"]
     assert set(matrix.columns) == {"phe_345"}
+
+
+def test_build_feature_matrix_uses_premapped_phecode_column(tmp_path) -> None:
+    diagnoses = pd.DataFrame(
+        {
+            "person_id": [1, 1, 2, 3],
+            "source_code": ["UNMAPPED", "ALSO_UNMAPPED", "UNMAPPED", "UNMAPPED"],
+            "phecode": ["100.0", "200", "100.0", None],
+            "phecode_str": ["A", "B", "A", None],
+        }
+    )
+    diagnosis_path = tmp_path / "diagnoses.parquet"
+    diagnoses.to_parquet(diagnosis_path)
+    map_path = tmp_path / "map.csv"
+    pd.DataFrame(
+        {
+            "icd": ["SHOULD_NOT_BE_USED"],
+            "flag": ["10"],
+            "phecode": ["999"],
+            "phecode_str": ["Wrong"],
+        }
+    ).to_csv(map_path, index=False)
+
+    summary = build_feature_matrix(diagnosis_path, map_path, tmp_path / "out_premapped", min_patients=1)
+    matrix = pd.read_parquet(tmp_path / "out_premapped" / "feature_matrix.parquet")
+    audit = pd.read_csv(tmp_path / "out_premapped" / "mapping_audit.csv")
+
+    assert summary["mapping_source"] == "premapped_phecode"
+    assert audit.loc[0, "mapping_source"] == "premapped_phecode"
+    assert set(matrix.columns) == {"phe_100", "phe_200"}
+    assert list(matrix.index) == ["1", "2"]

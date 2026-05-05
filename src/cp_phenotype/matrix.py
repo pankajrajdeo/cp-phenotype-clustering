@@ -57,6 +57,35 @@ def eligible_patients_from_cohort(
     }
 
 
+def _has_premapped_phecodes(diagnoses: pd.DataFrame) -> bool:
+    return "phecode" in diagnoses.columns and diagnoses["phecode"].notna().any()
+
+
+def _events_from_premapped_phecodes(diagnoses: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    events = diagnoses[diagnoses["phecode"].notna()].copy()
+    events["phecode"] = events["phecode"].astype(str).str.strip()
+    events = events[events["phecode"] != ""].copy()
+    if "phecode_str" not in events.columns:
+        events["phecode_str"] = events["phecode"]
+    else:
+        events["phecode_str"] = events["phecode_str"].fillna(events["phecode"]).astype(str)
+
+    audit = (
+        pd.DataFrame(
+            {
+                "mapping_source": ["premapped_phecode"],
+                "diagnosis_rows": [int(len(diagnoses))],
+                "mapped_rows": [int(len(events))],
+                "unmapped_rows": [int(len(diagnoses) - len(events))],
+                "mapped_patients": [int(events["person_id"].nunique())],
+                "mapped_phecodes": [int(events["phecode"].nunique())],
+            }
+        )
+    )
+    unmapped = diagnoses[diagnoses["phecode"].isna()].copy()
+    return events, audit, unmapped
+
+
 def build_feature_matrix(
     diagnoses_path: str | Path,
     map_path: str | Path,
@@ -75,9 +104,20 @@ def build_feature_matrix(
     eligible_patients, filter_summary = eligible_patients_from_cohort(cohort_path, min_visits, require_gmfcs)
     if eligible_patients is not None:
         diagnoses = diagnoses[diagnoses["person_id"].isin(eligible_patients)].copy()
-    phecode_map = load_phecode_map(map_path, definitions_path)
 
-    events, audit, unmapped = map_diagnoses_to_phecodes(diagnoses, phecode_map)
+    mapping_source = "premapped_phecode" if _has_premapped_phecodes(diagnoses) else "icd_phecode_map"
+    if mapping_source == "premapped_phecode":
+        events, audit, unmapped = _events_from_premapped_phecodes(diagnoses)
+    else:
+        empty_premapped_columns = [
+            column
+            for column in ["phecode", "phecode_str", "phecode_category"]
+            if column in diagnoses.columns and diagnoses[column].notna().sum() == 0
+        ]
+        diagnoses = diagnoses.drop(columns=empty_premapped_columns)
+        phecode_map = load_phecode_map(map_path, definitions_path)
+        events, audit, unmapped = map_diagnoses_to_phecodes(diagnoses, phecode_map)
+
     events = _exclude_phecodes(events, list(exclude_phecodes or []), feature_prefix)
     events["feature_id"] = events["phecode"].map(lambda value: make_feature_id(value, feature_prefix))
 
@@ -106,6 +146,7 @@ def build_feature_matrix(
         "n_phecode_event_rows": int(len(events)),
         "n_patients": int(matrix.shape[0]),
         "n_features": int(matrix.shape[1]),
+        "mapping_source": mapping_source,
         "excluded_phecodes": list(exclude_phecodes or []),
         **filter_summary,
         "feature_matrix": str(out_dir / "feature_matrix.parquet"),

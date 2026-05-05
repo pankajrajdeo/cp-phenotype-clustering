@@ -76,6 +76,10 @@ def _qualified_or_null(alias: str, column: str, data_type: str, available: set[s
     return f"{alias}.{column}" if column in available else _nullable_expr(column, data_type)
 
 
+def _qualified_min_or_null(alias: str, column: str, data_type: str, available: set[str]) -> str:
+    return f"MIN({alias}.{column}) AS {column}" if column in available else _nullable_expr(column, data_type)
+
+
 def extract_schema_snapshot(
     tables: list[str],
     out_path: str | Path,
@@ -139,6 +143,21 @@ def extract_diagnoses(
     distinct_patient_code: bool = False,
     limit_rows: int | None = None,
 ) -> pd.DataFrame:
+    available = _table_columns(diagnosis_table, env_path)
+    premapped_selects = [
+        _qualified_or_null("d", "phecode", "VARCHAR2(4000)", available),
+        _qualified_or_null("d", "phecode_str", "VARCHAR2(4000)", available),
+        _qualified_or_null("d", "phecode_category", "VARCHAR2(4000)", available),
+        _qualified_or_null("d", "icd_10", "VARCHAR2(4000)", available),
+        _qualified_or_null("d", "icd", "VARCHAR2(4000)", available),
+    ]
+    premapped_grouped_selects = [
+        _qualified_min_or_null("d", "phecode", "VARCHAR2(4000)", available),
+        _qualified_min_or_null("d", "phecode_str", "VARCHAR2(4000)", available),
+        _qualified_min_or_null("d", "phecode_category", "VARCHAR2(4000)", available),
+        _qualified_min_or_null("d", "icd_10", "VARCHAR2(4000)", available),
+        _qualified_min_or_null("d", "icd", "VARCHAR2(4000)", available),
+    ]
     if mode == "cp_person_conditions" and distinct_patient_code:
         sql = f"""
             SELECT
@@ -150,6 +169,7 @@ def extract_diagnoses(
                 MIN(d.dx_category) AS diagnosis_category,
                 MIN(d.condition_start_datetime) AS diagnosis_datetime,
                 MIN(CAST(d.condition_start_datetime AS DATE)) AS diagnosis_date,
+                {", ".join(premapped_grouped_selects)},
                 COUNT(*) AS event_count,
                 'cp_person_conditions_patient_code' AS source_table
             FROM {diagnosis_table} d
@@ -209,6 +229,7 @@ def extract_diagnoses(
                 d.dx_category AS diagnosis_category,
                 d.condition_start_datetime AS diagnosis_datetime,
                 CAST(d.condition_start_datetime AS DATE) AS diagnosis_date,
+                {", ".join(premapped_selects)},
                 1 AS event_count,
                 'cp_person_conditions' AS source_table
             FROM {diagnosis_table} d

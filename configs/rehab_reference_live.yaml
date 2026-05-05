@@ -1,0 +1,52 @@
+project_root: ../..
+env_path: .env
+
+random_seed: 0
+
+sources:
+  cohort_table: REHAB.CP_PERSON
+  visits_table: REHAB.VISIT_OCCURRENCE
+  observations_table: REHAB.OBSERVATION
+  deaths_table: REHAB.DEATH
+  death_fallback_table: CP_PEDSNET.OMOP_DEATH
+  diagnosis_table: REHAB.CP_CONDITION_DX_SYSTEM
+  diagnosis_mode: cp_person_conditions
+  diagnosis_distinct_patient_code: true
+  minimum_diagnosis_patients: 0
+
+extraction:
+  visits_mode: summary
+
+feature_matrix:
+  min_patients: 4
+  feature_prefix: phe_
+  exclude_phecodes:
+    - "343.0"
+    - "333.4"
+
+cohort_filters:
+  require_gmfcs: true
+  min_visits: 3
+
+clustering:
+  preprocess_method: scanpy_log1p
+  normalize_total_target: 10000
+  pca_n_components: 50
+  pca_svd_solver: arpack
+  neighbors_n_pcs: 15
+  n_neighbors: 30
+  graph_method: umap
+  leiden_n_iterations: -1
+  target_clusters: 5
+  discovery_min_clusters: 3
+  discovery_max_clusters: 10
+  resolution_grid:
+    - 0.50
+
+paths:
+  phecode_dir: data/external/phecode
+  raw_dir: data/raw/rehab_reference_live
+  processed_dir: data/processed/rehab_reference_live
+  run_dir: outputs/runs/rehab_reference_live
+  report_dir: outputs/reports/rehab_reference_live
+  baseline_results_dir: misc/CP_subcluster_onedrive/results
