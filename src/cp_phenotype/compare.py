@@ -242,7 +242,6 @@ def write_validation_report(
             "## Interpretation",
             "- This report compares structured diagnosis-code clusters only.",
             "- Differences should be interpreted against cohort definition, diagnosis source, mapping coverage, GMFCS availability, and OMOP/vocabulary versions.",
-            "- Temporal, treatment/outcome, note, imaging, and gait analyses are intentionally out of scope for this first validation baseline.",
             "",
         ]
     )
