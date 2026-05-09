@@ -1,10 +1,10 @@
 # Template for future PEDSnet validation.
 #
-# Fill this in only after Alka/Janet confirm:
-# - the exact exposed PEDSnet condition/diagnosis table name,
-# - whether standard condition_concept_id, condition_source_value, ICD, or SNOMED
-#   fields should drive Phecode mapping,
-# - the exact crosswalk table and join columns if reference-cohort alignment is needed.
+# Confirmed after PEDSnet refresh:
+# - CP_PEDSNET.OMOP_CONDITION_OCCURRENCE is available.
+# - CP_PEDSNET.OMOP_PATIENT_MAPPING contains PEDSnet PERSON_ID, PAT_ID, and MRN.
+# - condition_source_value is descriptive text; ICD mapping uses
+#   condition_source_concept_id -> REHAB.CONCEPT.concept_code/vocabulary_id.
 #
 # Do not rely on direct person_id overlap with REHAB. The schemas use different ETLs.
 
@@ -18,16 +18,21 @@ sources:
   visits_table: CP_PEDSNET.OMOP_VISIT_OCCURRENCE
   observations_table: CP_PEDSNET.OMOP_OBSERVATION
   deaths_table: CP_PEDSNET.OMOP_DEATH
-  diagnosis_table: CP_PEDSNET.CONDITION_OCCURRENCE
+  diagnosis_table: CP_PEDSNET.OMOP_CONDITION_OCCURRENCE
+  concept_table: REHAB.CONCEPT
   diagnosis_mode: condition_occurrence
   diagnosis_distinct_patient_code: true
   minimum_diagnosis_patients: 0
 
 crosswalk:
-  status: pending
-  candidate_person_source_field: CP_PEDSNET.OMOP_PERSON.person_source_value
-  confirmed_table: null
-  confirmed_join: null
+  status: confirmed_table_available
+  pedsnet_table: CP_PEDSNET.OMOP_PATIENT_MAPPING
+  pedsnet_person_col: PERSON_ID
+  pedsnet_mrn_col: MRN
+  rehab_candidate_tables:
+    - REHAB.TBL_REHAB_PERSON_MAPPING
+    - REHAB.PERSON_ID_CROSSWALK
+  note: MRN-based bridge is available for auditing; clustering should use PEDSnet person_id internally.
 
 extraction:
   visits_mode: summary

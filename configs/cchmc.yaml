@@ -8,14 +8,15 @@ oracle:
 
 sources:
   # Strict CCHMC PEDSnet profile.
-  # The condition/diagnosis table was missing as of the May 5, 2026 meeting.
-  # Replace diagnosis_table with the exact table name once Alka/Janet expose it.
-  # Direct person_id joins to REHAB are invalid because the schemas use different ETLs.
+  # Uses the refreshed PEDSnet condition table and source concept IDs for ICD mapping.
+  # Direct person_id joins to REHAB are invalid because the schemas use different ETLs;
+  # use OMOP_PATIENT_MAPPING when cross-source alignment is required.
   cohort_table: CP_PEDSNET.OMOP_PERSON
   visits_table: CP_PEDSNET.OMOP_VISIT_OCCURRENCE
   observations_table: CP_PEDSNET.OMOP_OBSERVATION
   deaths_table: CP_PEDSNET.OMOP_DEATH
-  diagnosis_table: CP_PEDSNET.CONDITION_OCCURRENCE
+  diagnosis_table: CP_PEDSNET.OMOP_CONDITION_OCCURRENCE
+  concept_table: REHAB.CONCEPT
   diagnosis_mode: condition_occurrence
   diagnosis_distinct_patient_code: true
   minimum_diagnosis_patients: 0

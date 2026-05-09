@@ -227,21 +227,19 @@ cp-phenotype run-all --config configs/rehab_reference_live.yaml
 `configs/rehab_reference_live.yaml` is intentionally separate from PEDSnet
 validation. It should not be used as an automatic fallback for PEDSnet.
 
-Run strict CCHMC PEDSnet validation after the PEDSnet condition table is exposed:
+Run strict CCHMC PEDSnet validation:
 
 ```bash
 cp-phenotype run-all --config configs/cchmc.yaml
 ```
 
-As of the May 5, 2026 project review, PEDSnet validation depends on two
-infrastructure confirmations from the data team:
-
-- the exact PEDSnet condition/diagnosis table name and available diagnosis fields
-- the exact person-ID crosswalk table and join columns, if reference-cohort
-  alignment is required
-
-Do not rely on direct `person_id` overlap between PEDSnet and REHAB/Clarity
-schemas; those IDs come from different ETLs.
+The CCHMC PEDSnet profile uses `CP_PEDSNET.OMOP_CONDITION_OCCURRENCE`.
+In this extract, `condition_source_value` is descriptive text, so ICD-to-Phecode
+mapping uses `condition_source_concept_id -> REHAB.CONCEPT.concept_code` and
+`REHAB.CONCEPT.vocabulary_id`. `CP_PEDSNET.OMOP_PATIENT_MAPPING` provides an
+MRN-based bridge for cross-source auditing. Do not rely on direct `person_id`
+overlap between PEDSnet and REHAB/Clarity schemas; those IDs come from
+different ETLs.
 
 Run the validation workflow step by step:
 

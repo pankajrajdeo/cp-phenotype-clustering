@@ -142,8 +142,22 @@ def extract_diagnoses(
     mode: str = "cp_person_conditions",
     distinct_patient_code: bool = False,
     limit_rows: int | None = None,
+    concept_table: str | None = None,
 ) -> pd.DataFrame:
     available = _table_columns(diagnosis_table, env_path)
+    concept_join = ""
+    concept_source_code = "d.condition_source_value"
+    concept_source_name = "CAST(NULL AS VARCHAR2(4000))"
+    concept_category = "CAST(NULL AS VARCHAR2(4000))"
+    concept_vocabulary = "CAST(NULL AS VARCHAR2(4000))"
+    concept_group_by = "d.condition_source_value"
+    if concept_table:
+        concept_join = f"LEFT JOIN {concept_table} sc ON sc.concept_id = d.condition_source_concept_id"
+        concept_source_code = "COALESCE(sc.concept_code, d.condition_source_value)"
+        concept_source_name = "COALESCE(sc.concept_name, d.condition_source_value)"
+        concept_category = "sc.domain_id"
+        concept_vocabulary = "sc.vocabulary_id"
+        concept_group_by = "COALESCE(sc.concept_code, d.condition_source_value), sc.vocabulary_id"
     premapped_selects = [
         _qualified_or_null("d", "phecode", "VARCHAR2(4000)", available),
         _qualified_or_null("d", "phecode_str", "VARCHAR2(4000)", available),
@@ -185,18 +199,20 @@ def extract_diagnoses(
                 d.person_id,
                 CAST(NULL AS NUMBER) AS visit_occurrence_id,
                 CAST(NULL AS NUMBER) AS condition_occurrence_id,
-                d.condition_source_value AS source_code,
-                CAST(NULL AS VARCHAR2(4000)) AS source_name,
-                CAST(NULL AS VARCHAR2(4000)) AS diagnosis_category,
+                {concept_source_code} AS source_code,
+                MIN({concept_source_name}) AS source_name,
+                MIN({concept_category}) AS diagnosis_category,
+                MIN({concept_vocabulary}) AS vocabulary_id,
                 MIN(d.condition_start_datetime) AS diagnosis_datetime,
                 MIN(d.condition_start_date) AS diagnosis_date,
                 COUNT(*) AS event_count,
                 'condition_occurrence_patient_code' AS source_table
             FROM {diagnosis_table} d
+            {concept_join}
             JOIN {cohort_table} c ON c.person_id = d.person_id
             WHERE d.condition_source_value IS NOT NULL
-            GROUP BY d.person_id, d.condition_source_value
-            {_order_clause("d.person_id, d.condition_source_value", limit_rows)}
+            GROUP BY d.person_id, {concept_group_by}
+            {_order_clause("d.person_id, source_code", limit_rows)}
             {_limit_clause(limit_rows)}
         """
     elif mode == "condition_occurrence":
@@ -205,14 +221,16 @@ def extract_diagnoses(
                 d.person_id,
                 d.visit_occurrence_id,
                 d.condition_occurrence_id,
-                d.condition_source_value AS source_code,
-                CAST(NULL AS VARCHAR2(4000)) AS source_name,
-                CAST(NULL AS VARCHAR2(4000)) AS diagnosis_category,
+                {concept_source_code} AS source_code,
+                {concept_source_name} AS source_name,
+                {concept_category} AS diagnosis_category,
+                {concept_vocabulary} AS vocabulary_id,
                 d.condition_start_datetime AS diagnosis_datetime,
                 d.condition_start_date AS diagnosis_date,
                 1 AS event_count,
                 'condition_occurrence' AS source_table
             FROM {diagnosis_table} d
+            {concept_join}
             JOIN {cohort_table} c ON c.person_id = d.person_id
             WHERE d.condition_source_value IS NOT NULL
             {_order_clause("d.person_id, d.condition_start_datetime", limit_rows)}
@@ -421,6 +439,7 @@ def extract_all(
         mode=sources.get("diagnosis_mode", "cp_person_conditions"),
         distinct_patient_code=bool(sources.get("diagnosis_distinct_patient_code", False)),
         limit_rows=limit_rows,
+        concept_table=sources.get("concept_table"),
     )
     primary_diagnosis_rows = int(len(diagnoses))
     primary_diagnosis_patients = int(diagnoses["person_id"].nunique()) if not diagnoses.empty else 0
@@ -441,6 +460,7 @@ def extract_all(
             mode=sources.get("diagnosis_mode", "cp_person_conditions"),
             distinct_patient_code=bool(sources.get("diagnosis_distinct_patient_code", False)),
             limit_rows=limit_rows,
+            concept_table=sources.get("concept_table"),
         )
         fallback_used = True
 
@@ -473,6 +493,8 @@ def extract_all(
         death_fallback_table,
         sources["diagnosis_table"],
     ]
+    if sources.get("concept_table"):
+        tables.append(sources["concept_table"])
     if fallback_used:
         tables.extend([primary_sources["cohort_table"], primary_sources["diagnosis_table"]])
     tables = list(dict.fromkeys(tables))
